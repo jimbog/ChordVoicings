@@ -1,0 +1,190 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Chord Finder</title>
+
+
+    
+    <!-- guitar references -->
+	<script src="js/jquery-2.0.3.min.js"></script>
+
+    <script src="/js/default.js"></script>
+    <script src="js/instrument.js"></script>
+</head>
+<body>
+	<h1 id="docTitle">Welcome to Chord finder</h1>
+    <div>
+		<h2>Select an instrument from the dropdown menu:</h2>
+    </div>
+	<form id="currentInstrumentForm">
+        <select id="instrumentType"></select>
+        <select id="chordRootSelect"></select>
+        <select id="chordQualitySelect"></select>
+	</form>
+ 
+        <h2>Or create a new one:</h2>
+        <form id="newInstrumentForm">
+            <label for="howManyStrings">Select number of strings</label>
+            <select id="howManyStrings">
+                <option>--</option>
+            </select>
+
+            <div id="newInstrumentTuning" >
+            <!--<input type="text" placeholder='For Example: e, b, g, d, a, e'/>-->
+	        </div>
+
+            <label for="name">And give it a name</label>
+            <input type="text" id="newInstrumentName" placeholder="i.e. banjo"/>
+            <button id="createNewInstrument" disabled="disabled">Create</button>
+        </form>
+
+
+
+   
+	<canvas id="canvas" width="800" height="600"></canvas>
+	<div id="results"></div>
+	
+		<script>
+		    /*TODO:
+            -for the create button on click => add instrument to instruments object
+            -resize canvas according to the number of strings
+            -make distintions between open strings, closed strings and transpose
+            -allocate frets for chords that need more than 5 frets
+            */
+
+		    function createOptionsFromNumber(id, from, to) {
+		        for (var i = from; i <= to; i++) {
+		            $("#" + id).append($("<option />").val(i).text(i));
+		        }
+		    }
+		    createOptionsFromNumber("howManyStrings", 3, 12);
+
+		    function createOptionsFromObject(id, obj) {
+		        var obj = window[obj];
+		        console.log(obj);
+		        for (var key in obj) {
+		            if (obj.hasOwnProperty(key)) 
+		                $("#" + id).append($("<option />").val(key).text(key.capitalize()));
+		        }
+		    }
+		    createOptionsFromObject("instrumentType", "tunings");
+
+            
+		    $("#howManyStrings").change(function () { //This will create selectors for the new instrument tunings
+		        var newInstrumentTuning = $("#newInstrumentTuning");
+		        newInstrumentTuning.empty()
+                for (var i = 0; i < this.value;i++){
+                    newInstrumentTuning.append("<select />");
+                }
+                $("#newInstrumentTuning select").each(function () {
+                    for (var key in Music.noteNames) {
+                        if (Music.noteNames.hasOwnProperty(key))
+                            $(this).append($("<option />").val(key).text(key.toUpperCase().replace("S", "#")));
+                    };
+                    
+                });
+
+		    });
+
+            // TODO use figure a way to make these loops to use just one function i.e. DRY
+		    for (var key in Music.noteNames) {
+		        if (Music.noteNames.hasOwnProperty(key))
+		           $("#chordRootSelect").append($("<option />").val(key).text(key.toUpperCase().replace("S","#")));
+		    };
+
+		    for (var triad in Music.TRIAD) {
+		        if (Music.TRIAD.hasOwnProperty(triad))
+		            $("#chordQualitySelect").append($("<option />").val(triad).text(triad.capitalize()));
+		    };
+		    
+		    
+	
+		    //console.log(tunings);
+		    /////////////////////////////////////
+
+		    //This are the drawings:
+		    var canvas = document.getElementById("canvas");
+		    var c = canvas.getContext("2d");
+		    var voicingWidth = 500;
+		    var voicingHeight = 500;
+		    var numberOfFrets = 5;
+		    var fretMarkerSize = 20;
+		    var voicing = [3, 0, 0, 0]; // this is just a default value
+		    var numberOfStrings = voicing.length;
+		    var stringSize = 80;
+		    var fretSize = 80;
+		    //maybe change xStart
+		    var xStart = 0;//voicingWidth/2;// + numberOfStrings*stringSize/2;
+		    var yStart = 0;//voicingHeight/2;// - numberOfFrets*(fretSize/2);;
+
+		    function drawNut(posX, posY, size) {
+		        c.moveTo(xStart, yStart);
+		        c.lineTo(xStart + (numberOfStrings - 1) * stringSize, yStart);
+		        c.stroke();
+		    }
+
+		    function drawFretMarker(posX, posY, markerHeight) {
+		        c.moveTo(posX, posY);
+		        c.lineTo(posX + markerHeight, posY);
+		        c.stroke();
+		    }
+
+		    function drawStringFret(posX, posY) {
+		        drawFretMarker(posX - 2, posY, 4)
+		        drawFretMarker(posX - 2, posY + fretSize, 4)
+		        c.moveTo(posX, posY);
+		        c.lineTo(posX, posY + fretSize);
+		        c.lineWidth = 1;
+		        c.stroke();
+		    }
+
+
+		    function drawString(posX, posY, numberOfFrets) {
+
+		        for (var i = 0; i < numberOfFrets; i++) {
+		            drawStringFret(posX, posY + i * fretSize);
+		        }
+		    }
+
+		    function drawInstrument(numberOfStrings) {
+
+		        for (var i = 0; i < numberOfStrings; i++) {
+		            drawString(xStart + i * stringSize, yStart, numberOfFrets);
+		        }
+		        drawNut();
+		    }
+
+
+		    function drawCircle(posX, posY) {
+		        c.beginPath();
+		        c.arc(posX, posY, fretSize / 4, 0, 2 * Math.PI);//c.arc(x,y,r,start,stop)
+		        c.fillStyle = "red";
+		        c.fill();
+		        c.stroke();
+		    }
+		    //drawCircle(xStart,yStart+fretSize/2);
+		    function fingers(arr) {
+		        for (var i = 0; i < voicing.length; i++) {
+		            drawCircle((xStart + (numberOfStrings - 1) * fretSize) - i * fretSize, (voicing[i] * fretSize) + (yStart + fretSize / 2));
+		        }
+		    }
+
+		    $('#currentInstrumentForm').change(function () {
+		        //console.log( this.value ); // or $(this).val()
+		        
+		        canvas.width = canvas.width;
+		        c.fillStyle = "white";
+		        c.fillRect(0, 0, voicingWidth, voicingHeight);
+		        voicing = window[document.getElementById('instrumentType').value].voicing([document.getElementById('chordRootSelect').value, document.getElementById('chordQualitySelect').value]);
+		        numberOfStrings = voicing.length;
+		        drawInstrument(numberOfStrings);
+		        
+		        fingers();
+		    });
+
+		    //TODO: Whole guitar canvas, tooltips, chordfingering...
+	</script>
+	
+</body>
+</html>
