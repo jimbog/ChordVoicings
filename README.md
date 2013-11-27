@@ -6,7 +6,8 @@ The script uses music theory to figure out fingering. As explained in the Wikipe
 
 Here is a rough overview of what's accomplished so far: http://goo.gl/VgUFKP
 
-To do: replace dots for a line on the 0 fret.
-       clean up canvas.
-       extend chord qualities, i.e. Maj7, sus4...
+To do:
+       * replace dots for a line on the 0 fret
+       * clean up canvas
+       * extend chord qualities, i.e. Maj7, sus4...
        
